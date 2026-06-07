@@ -1,7 +1,7 @@
 name: 生成 APK 安装包
 
 on:
-  workflow_dispatch:  # 手动触发
+  workflow_dispatch:
   push:
     branches: [master]
 
@@ -12,7 +12,7 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Java
+      - name: 安装 Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -35,64 +35,49 @@ jobs:
 
       - name: 初始化 TWA 项目
         run: |
-          mkdir -p twa-project
-          cd twa-project
-          bubblewrap init --manifest https://yaa185774-stack.github.io/jizhangben/manifest.json
+          # 非交互式初始化（自动回答 No 跳过 JDK 安装）
+          printf "n\n" | bubblewrap init --manifest https://yaa185774-stack.github.io/jizhangben/manifest.json
 
-      - name: 更新 TWA 配置
+      - name: 配置签名密钥
         run: |
-          cd twa-project
-          # 设置 keystore 信息
-          cat > keystore.json << 'EOF'
-          {
-            "keystorePath": "../release.keystore",
-            "keystorePassword": "android123",
-            "keyAlias": "jizhangben",
-            "keyPassword": "android123"
-          }
-          EOF
-          # 换成 .jks 扩展名
-          cp ../release.keystore ./app-release.keystore 2>/dev/null || true
+          # 用 jq 把签名信息写入 twa-manifest.json
+          cat twa-manifest.json | jq '. + {
+            "packageId": (.packageId // "com.jizhangben.app"),
+            "signingKey": {
+              "path": "./release.keystore",
+              "alias": "jizhangben"
+            },
+            "signingKeyPassword": "android123",
+            "signingKeyAliasPassword": "android123"
+          }' > tmp.json && mv tmp.json twa-manifest.json
+
+          # 拷贝 keystore 到项目目录
+          cp release.keystore ./
+
+          cat twa-manifest.json
 
       - name: 构建 APK
         run: |
-          cd twa-project
-          bubblewrap build
+          printf "n\n" | bubblewrap build
 
-      - name: 查找并上传 APK
+      - name: 收集 APK
         run: |
-          echo "查找生成的 APK 文件..."
-          find twa-project -name "*.apk" -type f 2>/dev/null || find . -name "*.apk" -type f 2>/dev/null
           mkdir -p output
-          APK=$(find twa-project -name "*.apk" -type f 2>/dev/null | head -1)
+          APK=$(find . -name "*.apk" 2>/dev/null | grep -i release | head -1)
           if [ -z "$APK" ]; then
-            APK=$(find . -name "*.apk" -type f 2>/dev/null | head -1)
+            APK=$(find . -name "*.apk" 2>/dev/null | head -1)
           fi
           if [ -n "$APK" ]; then
-            cp "$APK" output/记账本.apk
-            echo "APK found: $APK"
+            cp "$APK" output/jizhangben.apk
+            echo "✅ APK: $(du -h output/jizhangben.apk | cut -f1)"
           else
-            echo "No APK found, listing all files:"
-            find . -name "*.apk" -o -name "*.aab" 2>/dev/null || echo "No APK/AAB files"
+            echo "⚠️ 未找到 APK"
+            find . -name "*.apk" -o -name "*.aab" 2>/dev/null
             exit 1
           fi
 
-      - name: 上传 APK 构件
+      - name: 上传 APK
         uses: actions/upload-artifact@v4
         with:
-          name: 记账本-APK
-          path: output/记账本.apk
-
-      - name: 发布到 Release（仅版本标签推送时）
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: output/记账本.apk
-          body: |
-            # 📱 记账本 安卓安装包
-
-            直接下载 APK 安装到手机即可使用！
-
-            - 🔒 数据存储在手机本地
-            - 📶 无需联网
-            - 🎯 绿色安全无毒
+          name: 记账本-安装包
+          path: output/jizhangben.apk
