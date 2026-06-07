@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#4CAF50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="简单好用的记账应用">
+  <title>记账本</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+</head>
+<body>
+  <!-- 主容器 -->
+  <div id="app">
+    <!-- 顶部标题栏 -->
+    <header id="header">
+      <h1 id="headerTitle">记账本</h1>
+    </header>
+
+    <!-- 页面内容区 -->
+    <main id="content">
+      <!-- ====== Tab 1: 记账 ====== -->
+      <section id="tab-record" class="tab-page active">
+        <!-- 收支类型切换 -->
+        <div class="type-switch">
+          <button id="btnExpense" class="type-btn active" data-type="expense">📤 支出</button>
+          <button id="btnIncome" class="type-btn" data-type="income">📥 收入</button>
+        </div>
+
+        <!-- 金额输入 -->
+        <div class="amount-input-area">
+          <span class="currency-sign">¥</span>
+          <input type="number" id="inputAmount" placeholder="0.00" step="0.01" min="0" inputmode="decimal">
+        </div>
+
+        <!-- 分类选择 -->
+        <div class="section-label">选择分类</div>
+        <div id="categoryGrid" class="category-grid"></div>
+
+        <!-- 日期选择 -->
+        <div class="section-label">日期</div>
+        <input type="date" id="inputDate" class="date-input">
+
+        <!-- 备注 -->
+        <div class="section-label">备注（选填）</div>
+        <input type="text" id="inputNote" class="note-input" placeholder="添加备注...">
+
+        <!-- 保存按钮 -->
+        <button id="btnSave" class="btn-save">✓ 记一笔</button>
+      </section>
+
+      <!-- ====== Tab 2: 明细 ====== -->
+      <section id="tab-list" class="tab-page">
+        <!-- 月度汇总 -->
+        <div class="month-summary">
+          <div class="summary-item income">
+            <span class="summary-label">收入</span>
+            <span id="summaryIncome" class="summary-value">¥0.00</span>
+          </div>
+          <div class="summary-item expense">
+            <span class="summary-label">支出</span>
+            <span id="summaryExpense" class="summary-value">¥0.00</span>
+          </div>
+          <div class="summary-item balance">
+            <span class="summary-label">结余</span>
+            <span id="summaryBalance" class="summary-value">¥0.00</span>
+          </div>
+        </div>
+
+        <!-- 月份切换 + 筛选 -->
+        <div class="list-controls">
+          <div class="month-picker">
+            <button id="btnPrevMonth" class="month-arrow">◀</button>
+            <span id="currentMonth" class="month-label"></span>
+            <button id="btnNextMonth" class="month-arrow">▶</button>
+          </div>
+          <div class="filter-tabs">
+            <button class="filter-btn active" data-filter="all">全部</button>
+            <button class="filter-btn" data-filter="expense">支出</button>
+            <button class="filter-btn" data-filter="income">收入</button>
+          </div>
+        </div>
+
+        <!-- 交易列表 -->
+        <div id="transactionList" class="transaction-list">
+          <div class="empty-state">📝 还没有记录<br>去记一笔吧！</div>
+        </div>
+      </section>
+
+      <!-- ====== Tab 3: 统计 ====== -->
+      <section id="tab-stats" class="tab-page">
+        <!-- 月份选择 -->
+        <div class="stats-month-picker">
+          <button id="btnStatsPrev" class="month-arrow">◀</button>
+          <span id="statsMonthLabel" class="month-label"></span>
+          <button id="btnStatsNext" class="month-arrow">▶</button>
+        </div>
+
+        <!-- 预算进度条 -->
+        <div class="budget-area">
+          <div class="budget-header">
+            <span>📊 本月预算</span>
+            <span id="budgetText">未设置</span>
+          </div>
+          <div class="budget-bar-bg">
+            <div id="budgetBar" class="budget-bar-fill safe"></div>
+          </div>
+          <div id="budgetDetail" class="budget-detail"></div>
+        </div>
+
+        <!-- 饼图：支出分类 -->
+        <div class="chart-container">
+          <div class="chart-title">支出分类占比</div>
+          <canvas id="pieChart"></canvas>
+        </div>
+
+        <!-- 柱状图：收支趋势 -->
+        <div class="chart-container">
+          <div class="chart-title">近6个月收支趋势</div>
+          <canvas id="barChart"></canvas>
+        </div>
+      </section>
+
+      <!-- ====== Tab 4: 我的 ====== -->
+      <section id="tab-me" class="tab-page">
+        <!-- 预算设置 -->
+        <div class="card">
+          <div class="card-title">💰 月度预算</div>
+          <div class="budget-setting">
+            <input type="number" id="inputBudget" placeholder="输入预算金额" step="0.01" min="0" inputmode="decimal">
+            <button id="btnSaveBudget" class="btn-small">保存</button>
+          </div>
+        </div>
+
+        <!-- 数据管理 -->
+        <div class="card">
+          <div class="card-title">📦 数据管理</div>
+          <div class="data-actions">
+            <button id="btnExport" class="btn-action">📤 导出 CSV</button>
+            <button id="btnImport" class="btn-action">📥 导入 CSV</button>
+            <input type="file" id="importFile" accept=".csv" style="display:none">
+          </div>
+        </div>
+
+        <!-- 关于 -->
+        <div class="card">
+          <div class="card-title">ℹ️ 关于</div>
+          <div class="about-info">
+            <p>📒 记账本 v1.0</p>
+            <p>数据存储在手机本地，安全放心</p>
+            <p>支持离线使用，无需联网</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 底部 Tab 栏 -->
+    <nav id="tabBar">
+      <button class="tab-btn active" data-tab="record">
+        <span class="tab-icon">📝</span>
+        <span class="tab-label">记账</span>
+      </button>
+      <button class="tab-btn" data-tab="list">
+        <span class="tab-icon">📋</span>
+        <span class="tab-label">明细</span>
+      </button>
+      <button class="tab-btn" data-tab="stats">
+        <span class="tab-icon">📊</span>
+        <span class="tab-label">统计</span>
+      </button>
+      <button class="tab-btn" data-tab="me">
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-label">我的</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- 删除确认弹窗 -->
+  <div id="deleteModal" class="modal">
+    <div class="modal-content">
+      <p>确定要删除这条记录吗？</p>
+      <div class="modal-buttons">
+        <button id="btnCancelDelete" class="btn-cancel">取消</button>
+        <button id="btnConfirmDelete" class="btn-danger">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 提示 -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- 应用脚本 -->
+  <script src="js/db.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
