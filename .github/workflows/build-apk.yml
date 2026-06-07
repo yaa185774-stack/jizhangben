@@ -35,8 +35,8 @@ jobs:
 
       - name: 初始化 TWA 项目
         run: |
-          # 非交互式初始化：自动回答 No + 提供 JDK 路径
-          printf "n\n%s\n" "$JAVA_HOME" | bubblewrap init --manifest https://yaa185774-stack.github.io/jizhangben/manifest.json
+          # 用 expect 式输入：回答前两个问题 + 其余全默认
+          { echo "n"; echo "$JAVA_HOME"; yes ""; } | bubblewrap init --manifest https://yaa185774-stack.github.io/jizhangben/manifest.json
 
       - name: 配置签名密钥
         run: |
