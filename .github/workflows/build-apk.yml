@@ -21,13 +21,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 生成 Gradle Wrapper
-        working-directory: android-app
+      - name: 安装 Gradle 8.4
         run: |
-          # 安装 Gradle 8.4（与 AGP 8.2 兼容）
-          sudo apt-get update -qq && sudo apt-get install -y -qq gradle
-          gradle --version
-          gradle wrapper --gradle-version 8.4
+          wget -q https://services.gradle.org/distributions/gradle-8.4-bin.zip
+          unzip -q gradle-8.4-bin.zip
+          echo "$PWD/gradle-8.4/bin" >> $GITHUB_PATH
 
       - name: 生成签名密钥
         working-directory: android-app
@@ -41,18 +39,14 @@ jobs:
 
       - name: 构建 APK
         working-directory: android-app
-        run: ./gradlew assembleRelease --no-daemon
+        run: gradle assembleRelease --no-daemon
 
       - name: 查找 APK
         run: |
           APK=$(find android-app -name "*.apk" | grep -i release | head -1)
-          if [ -z "$APK" ]; then
-            APK=$(find android-app -name "*.apk" | head -1)
-          fi
-          echo "APK: $APK"
           mkdir -p output
           cp "$APK" output/jizhangben.apk
-          echo "✅ 大小: $(du -h output/jizhangben.apk | cut -f1)"
+          echo "✅ APK 大小: $(du -h output/jizhangben.apk | cut -f1)"
 
       - name: 上传 APK
         uses: actions/upload-artifact@v4
