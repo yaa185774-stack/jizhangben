@@ -1,0 +1,9 @@
+{
+  "name": "jizhangben",
+  "version": "1.0.0",
+  "description": "记账本 PWA 应用",
+  "private": true,
+  "dependencies": {
+    "jimp": "^1.6.1"
+  }
+}
