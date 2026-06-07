@@ -11,6 +11,15 @@ desktop.ini
 node_modules/
 package-lock.json
 
+# Android 构建输出
+android-app/.gradle/
+android-app/build/
+android-app/app/build/
+android-app/release.keystore
+android-app/local.properties
+*.apk
+*.aab
+
 # 临时文件
 *.tmp
 *.log

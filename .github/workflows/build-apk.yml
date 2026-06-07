@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [master]
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/build-apk.yml'
 
 jobs:
   build-apk:
@@ -18,13 +21,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 设置 Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: 安装 Bubblewrap
-        run: npm install -g @bubblewrap/cli
+      - name: 设置 Gradle
+        uses: gradle/actions/setup-gradle@v3
 
       - name: 生成签名密钥
+        working-directory: android-app
         run: |
           keytool -genkey -v \
             -keystore release.keystore \
@@ -33,48 +34,20 @@ jobs:
             -storepass android123 -keypass android123 \
             -dname "CN=JizhangBen, OU=App, O=JZB, L=Shenzhen, ST=Guangdong, C=CN"
 
-      - name: 初始化 TWA 项目
-        run: |
-          # 用 expect 式输入：回答前两个问题 + 其余全默认
-          { echo "n"; echo "$JAVA_HOME"; yes ""; } | bubblewrap init --manifest https://yaa185774-stack.github.io/jizhangben/manifest.json
-
-      - name: 配置签名密钥
-        run: |
-          # 用 jq 把签名信息写入 twa-manifest.json
-          cat twa-manifest.json | jq '. + {
-            "packageId": (.packageId // "com.jizhangben.app"),
-            "signingKey": {
-              "path": "./release.keystore",
-              "alias": "jizhangben"
-            },
-            "signingKeyPassword": "android123",
-            "signingKeyAliasPassword": "android123"
-          }' > tmp.json && mv tmp.json twa-manifest.json
-
-          # 拷贝 keystore 到项目目录
-          cp release.keystore ./
-
-          cat twa-manifest.json
-
       - name: 构建 APK
-        run: |
-          printf "n\n" | bubblewrap build
+        working-directory: android-app
+        run: gradle assembleRelease
 
-      - name: 收集 APK
+      - name: 查找 APK
         run: |
-          mkdir -p output
-          APK=$(find . -name "*.apk" 2>/dev/null | grep -i release | head -1)
+          APK=$(find android-app -name "*.apk" | grep -i release | head -1)
           if [ -z "$APK" ]; then
-            APK=$(find . -name "*.apk" 2>/dev/null | head -1)
+            APK=$(find android-app -name "*.apk" | head -1)
           fi
-          if [ -n "$APK" ]; then
-            cp "$APK" output/jizhangben.apk
-            echo "✅ APK: $(du -h output/jizhangben.apk | cut -f1)"
-          else
-            echo "⚠️ 未找到 APK"
-            find . -name "*.apk" -o -name "*.aab" 2>/dev/null
-            exit 1
-          fi
+          echo "APK location: $APK"
+          mkdir -p output
+          cp "$APK" output/jizhangben.apk
+          ls -lh output/jizhangben.apk
 
       - name: 上传 APK
         uses: actions/upload-artifact@v4
